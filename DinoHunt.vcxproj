@@ -148,6 +148,9 @@
     <Image Include="dinomom-atlas_hq.png" />
     <Image Include="heart-health.png" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DinoHunt.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
