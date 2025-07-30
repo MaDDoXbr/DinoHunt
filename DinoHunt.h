@@ -38,14 +38,21 @@ public:
 	map<string, Animation*> animations;	// animname | animation
 	Animation* curAnimation;
 
-	Sprite(Texture _texture, Vector2 _pos = { 80.f, 90.f }, float _rot = { 0.f }, Vector2 _size = { 1.f,1.f },
-		Vector2 _startPos = { 0.f, 0.f }, Vector2 _screenScale = { 1.f, 1.f },
-		map<string, Animation*> _animations = {}, Animation* _curAnimation = nullptr) {
+	Sprite(	Texture _texture, 
+			Vector2 _pos = { 80.f, 90.f }, 
+			float _rot = { 0.f }, 
+			Vector2 _size = { 1.f,1.f },
+			Vector2 _startPos = { 0.f, 0.f }, 
+			Vector2 _screenScale = { 1.f, 1.f },
+			map<string, Animation*> _animations = {}, 
+			Animation* _curAnimation = nullptr) {
 
 		texture = _texture;	pos = _pos;	rot = _rot; size = _size;
 		startPos = _startPos; screenScale = _screenScale;
 		animations = _animations; curAnimation = _curAnimation;
 	}
+
+	//~Sprite() { cout << "Sprite destroyed!"; } //Destructor
 
 	void Draw();
 	void SetAnimation(string, Animation*);	//Might be "add" or "update"

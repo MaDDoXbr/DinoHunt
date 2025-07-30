@@ -27,7 +27,7 @@ Animation* Sprite::GetAnimationFromId(string id) {
 
 Rectangle Sprite::getAnimationRect(Animation* self) {
 	int column = self->cur % self->column_count;	// "inferred" current column
-	int x_offset = 2 * column;
+	int x_offset = 2 * column;	//TODO: de-hardcode the x offset, and add y-offset capacity
 	//No offset in the first column //(self->cur % column_count == self->first ? 0 : x_offset)
 	int x = (int)((self->cur % self->column_count) * 48.0f) + x_offset;	// 48 => sprite_width
 	int y = (int)((self->cur / self->column_count) * 48.0f);
