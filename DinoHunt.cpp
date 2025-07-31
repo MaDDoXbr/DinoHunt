@@ -2,93 +2,52 @@
 //
 
 #include <iostream>
-#include "raylib.h"
-#include "DinoHunt.h"
+#include <algorithm>
+#include <vector>
+#include "Sprite.h"
 
-//** C-style:
-//typedef struct Animation {	// struct identifier
-//	int first;
-//	int last;
-//	int cur;
-//
-//	float frame_duration;
-//	float duration_left;
-//
-//	AnimationType type; //'Looping' assumed
-//} Animation;			// typedef "Alias"
-//=====
-// Usage:
-//struct _animation A = Animation();	<- Interchangeable
-//Animation B = _animation();
+#define BG_SCROLL_SPEED 0.6
+#define DINOMOM_SPEED 2.0
+#define DINOBABY_SPEED 2.2
+#define CAR_SPEED 2.8
 
-Animation* Sprite::GetAnimationFromId(string id) {
-	return this->animations[id];
-}
+float bgOffset = 0.0f;
+vector<Sprite> AllSprites = {};
+Sprite spr_dinomom;
 
-Rectangle Sprite::getAnimationRect(Animation* self) {
-	int column = self->cur % self->column_count;	// "inferred" current column
-	int x_offset = 2 * column;	//TODO: de-hardcode the x offset, and add y-offset capacity
-	//No offset in the first column //(self->cur % column_count == self->first ? 0 : x_offset)
-	int x = (int)((self->cur % self->column_count) * 48.0f) + x_offset;	// 48 => sprite_width
-	int y = (int)((self->cur / self->column_count) * 48.0f);
-	return Rectangle{ (float)x, (float)y, 48.0f, 48.0f };
-}
+const Vector2 screenSize = { 320, 240 };
+const Rectangle dinomom_bounds = Rectangle{ .x = 10.f, .y = 20.f,
+							.width = screenSize.x - 60.f - spr_dinomom.size.x,
+							.height = screenSize.y - 70.f - spr_dinomom.size.y };
 
-void Sprite::Draw() {
-	this->size = Vector2(48.f, 48.f);
-	//TODO: Calculate rectangle from this->pos
-	DrawTexturePro(this->texture, this->getAnimationRect(this->curAnimation), 
-				   Rectangle{ this->pos.x,this->pos.y,48,48 }, { 0.f, 0.f }, 0.f, WHITE);
-	//DrawTexturePro(txtr_dinomom,	getAnimationRect(&anm_dinomom, 3), 
-	//				Rectangle{ 80,96,48,48 }, { 0.0f, 0.0f }, 0.0f, WHITE);
-}
-
-void Sprite::SetAnimation(string id, Animation* anim_p) {
-	//this->animations.insert(pair(id, anim));	
-	this->animations.emplace(id, anim_p);	//Slightly more efficient, no temporary "pair" construction in memory
-	this->curAnimation = anim_p;
-}
-
-void Sprite::UpdateAnimations()
-{
-	for (pair pair : this->animations) {
-		this->UpdateAnimation(pair.second);
-	}
-}
-
-void Sprite::UpdateAnimation(string id)
-{
-	Sprite::UpdateAnimation(this->animations[id]);
-}
-
-void Sprite::UpdateAnimation(Animation* self) {
-	float deltaTime = GetFrameTime();
-	self->duration_left -= deltaTime;
-	// show next frame
-	if (self->duration_left <= 0.0f) {
-		self->duration_left = self->frame_duration;
-		self->cur++;
-		// if it's the last frame
-		if (self->cur >= self->last) //was _>_, leading to a last-frame-stuck bug
-			self->cur = (self->type != ONESHOT) ? self->first : self->last;	// ternary/conditional operator
-			//if (self->type == LOOPING)
-			//	self->cur = self->first;
-			//else
-			//	self->cur = self->last;		//sticks to the last frame
-	}
-}
+Animation anm_dinomom = Animation{ .first = 0, .last = 6, .cur = 0,
+									.frame_duration = 0.1f, .duration_left = 0.1f,
+									.type = LOOPING };
+Animation anm_dinobaby = Animation{ .first = 0, .last = 6, .cur = 0,
+									.frame_duration = 0.1f, .duration_left = 0.1f,
+									.type = LOOPING };
 
 int main()
 {
-	const Vector2 screenSize = { 320, 240 };
 	const float screenScaler = 1.f;		//TODO: Make all sprites read and apply it automatically
 	Image img_bg = LoadImage("dino-game-bg.png");
 	Image img_dinomom = LoadImage("dinomom-atlas_hq.png");
+	Image img_dinobaby = LoadImage("babydino-atlas.png");
+	Image img_car = LoadImage("car-atlas.png");
 
 	InitWindow((int)(screenSize.x * screenScaler), (int)(screenSize.y * screenScaler), "Dino Hunt!");
+	SetTargetFPS(60);
 
 	Texture txtr_bg = LoadTextureFromImage(img_bg);
 	Texture txtr_dinomom = LoadTextureFromImage(img_dinomom);
+	Texture txtr_dinobaby = LoadTextureFromImage(img_dinobaby);
+	Texture txtr_car = LoadTextureFromImage(img_car);
+
+	spr_dinomom = Sprite(txtr_dinomom, Vector2{ 40.f,90.f }, Vector2{ 48.f, 48.f }, 0.f, Vector2{ 2.f, 0.f });
+	spr_dinomom.SetAnimation("walk", &anm_dinomom);
+
+	Sprite spr_dinobaby = Sprite(txtr_dinobaby, Vector2{ 200.f,90.f }, Vector2{ 34.f, 34.f });
+	spr_dinobaby.SetAnimation("walk", &anm_dinobaby);
 
 	//Animation anm_dinomom = Animation{ 0, 6, 0, 0.1, 0.1 };
 
@@ -105,21 +64,6 @@ int main()
 	//  2. Configuration Properties -> C / C++ Language
 	//	3. C++ Language Standard ->	ISO C++20 Standard(/ std:c++20)
 
-	Vector2 v2one = Vector2{ 1.f, 1.f };
-	Vector2 v2zero = Vector2{ 0.f, 0.f };
-
-	Sprite spr_dinomom = Sprite(txtr_dinomom, Vector2{ 80.f,90.f });
-
-	//Sprite(Texture _texture, Vector2 _pos = { 80.f, 90.f }, float _rot = { 0.f }, Vector2 _size = { 1.f,1.f },
-	//	Vector2 _startPos = { 0.f, 0.f }, Vector2 _screenScale = { 1.f, 1.f },
-	//	map<string, Animation*> _animations, Animation * _curAnimation) {
-
-	Animation anm_dinomom = Animation{	.first = 0, .last = 6, .cur = 0,
-										.frame_duration = 0.1f, .duration_left = 0.1f, 
-										.type = LOOPING };
-
-	spr_dinomom.SetAnimation("walk", &anm_dinomom);
-
 	//using Animation = struct {
 	//	Sprite* sprite;
 	//	string id;
@@ -133,26 +77,44 @@ int main()
 	//--- Main Game Loop
 	while (!WindowShouldClose()) {
 
-		//animation_update(&anm_dinomom);
 		spr_dinomom.UpdateAnimation("walk");
+		spr_dinobaby.UpdateAnimation("walk");
 
 		BeginDrawing();
 			ClearBackground(WHITE);
-			DrawTexture(txtr_bg, 0, 0, WHITE);
-			//DrawText("Texture loaded!", 160, 170, 10, DARKGREEN);
-			// 
-			//DrawTextureEx(txtr_dinomom, { 80.0f, 96.0f }, 0.0f, 1.0f, WHITE);
-			// 
-			//DrawTexturePro(	txtr_dinomom, 
-			//				Rectangle{0,0,48,48}, Rectangle{80,96,48,48}, 
-			//				{0.0f, 0.0f}, 0.0f, WHITE);
-			//DrawTexturePro(	txtr_dinomom, 
-			//				getAnimationRect(&anm_dinomom,3), Rectangle{80,96,48,48},
-			//				{0.0f, 0.0f}, 0.0f, WHITE);
+			// Draw Scrolling BG
+			bgOffset -= BG_SCROLL_SPEED;   //Scroll speed per screen update
+			if (bgOffset <= -txtr_bg.width)
+				bgOffset = 0;
+			DrawTexture(txtr_bg, bgOffset, 0, WHITE);
+			DrawTexture(txtr_bg, txtr_bg.width+bgOffset, 0, WHITE);
+
+			// Player movement
+			if (IsKeyDown(KEY_RIGHT))
+				spr_dinomom.pos.x += DINOMOM_SPEED;
+			if (IsKeyDown(KEY_LEFT))
+				spr_dinomom.pos.x -= DINOMOM_SPEED;
+			if (IsKeyDown(KEY_UP))
+				spr_dinomom.pos.y -= DINOMOM_SPEED;
+			if (IsKeyDown(KEY_DOWN))
+				spr_dinomom.pos.y += DINOMOM_SPEED;
+			spr_dinomom.pos.x = clamp(spr_dinomom.pos.x, dinomom_bounds.x, (dinomom_bounds.x + dinomom_bounds.width));
+			spr_dinomom.pos.y = clamp(spr_dinomom.pos.y, dinomom_bounds.y, (dinomom_bounds.y + dinomom_bounds.height));
+
+			spr_dinobaby.pos.x -= DINOBABY_SPEED;
+
+			spr_dinobaby.Draw();
 			spr_dinomom.Draw();
 
 		EndDrawing();
 	}
+
+	//std::unique_ptr x; // only one pointer may own the resource at a time; released when unique o.o.scope
+	//std::shared_ptr	y; // supports multiple owners, only released after all owners go out of scope
+	//	// ^--- uses reference-counting
+	//std::weak_ptr z;	// holds a non-owning reference to a shared_ptr; as long as there's one, no release
+	//	// ^--- does not affect reference-counting, can NOT be dereferenced directly (requires lock() )
+	//	// Used to "observe" objects existance, without causing circular references
 
 	CloseWindow();
 
@@ -160,4 +122,61 @@ int main()
 
 	UnloadImage(img_bg);
 }
+
+//---------- MOCK CODE ARCHITECTURE BELOW:
+//
+//bool gameOver; bool isPaused;
+//
+//void GameSetup() {
+//	gameOver = false;
+//	spr_dinomom.pos = spr_dinomom.startPos;
+//}
+//
+//void UpdateGame() {
+//	if (!gameOver) {
+//		if (IsKeyPressed('P'))
+//			isPaused != isPaused;
+//		if (!isPaused) {
+//			PlayerMovement();
+//			CheckCollisions();
+//			SpawnCars();
+//		}
+//	} else {
+//		if (IsKeyPressed(KEY_ENTER)) {
+//			GameSetup();
+//			gameOver = false;
+//		}
+//	}
+//}
+//
+//void DrawGame() {
+//	BeginDrawing();
+//	ClearBackground(WHITE);
+//	// Draw the scrolling Background
+//	if (!gameOver) {
+//		spr_dinomom.Draw();
+//		for (Sprite thisSprite : AllSprites) {
+//			thisSprite.Draw();
+//		}
+//		//DrawUI();
+//	}
+//	else {
+//		DrawText("PRESS [ENTER] TO PLAY AGAIN", 30, 60, 40, WHITE);
+//	}
+//	EndDrawing();
+//}
+//
+//void GameWrapup() {}
+//
+//int main_() {
+//	InitWindow(400, 300, "Title");
+//	SetTargetFPS(60);
+//	GameSetup();	//Set starting values, 
+//	while (!WindowShouldClose()) {
+//		UpdateGame();
+//		DrawGame();
+//	}
+//	GameWrapup();
+//	CloseWindow();
+//}
 
