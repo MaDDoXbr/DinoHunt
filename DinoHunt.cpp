@@ -6,34 +6,54 @@
 #include <vector>
 #include "Sprite.h"
 
-#define BG_SCROLL_SPEED 0.6
-#define DINOMOM_SPEED 2.0
-#define DINOBABY_SPEED 2.2
-#define CAR_SPEED 2.8
+#define BG_SCROLL_SPEED 0.6f
+#define DINOMOM_SPEED 2.0f
+#define DINOBABY_SPEED 2.2f
+#define CAR_SPEED 2.8f
+
+#define NUM_MAX_DINOBABIES 50
+
+Sprite spr_babydinos[NUM_MAX_DINOBABIES]; // = { Sprite{} };
 
 float bgOffset = 0.0f;
-vector<Sprite> AllSprites = {};
+vector<Sprite*> AllSprites = {};
 Sprite spr_dinomom;
+
+//Game Variables
+int Score = 0;
 
 const Vector2 screenSize = { 320, 240 };
 const Rectangle dinomom_bounds = Rectangle{ .x = 10.f, .y = 20.f,
-							.width = screenSize.x - 60.f - spr_dinomom.size.x,
-							.height = screenSize.y - 70.f - spr_dinomom.size.y };
+							.width = screenSize.x - 60.f - 48.f,
+							.height = screenSize.y - 70.f - 48.f };
 
-Animation anm_dinomom = Animation{ .first = 0, .last = 6, .cur = 0,
+//struct Animation {
+//	string id;
+//	Texture texture;
+//	int column_count = 3;	//rows are calculated from the column (TODO: add separate param for sparse spritesheets)
+//	Rectangle sourceRect = {};	// Area that'll be sliced from the spritesheet// 
+//	int first; int last; int cur;
+//	float frame_duration; float duration_left;
+//	AnimationType type;
+//};
+
+Animation anm_dinomom = Animation{	.sourceRect = Rectangle{ 0.f, 0.f, 48.f, 48.f },
+									.first = 0, .last = 6, .cur = 0,
+									.frame_duration = 0.1f, .duration_left = 0.1f,
+									.type = LOOPING, .cropOffset = { 2.f, 0.f } };
+Animation anm_dinobaby = Animation{ .sourceRect = Rectangle{ 0.f, 0.f, 34.f, 34.f },
+									.first = 0, .last = 6, .cur = 0,
 									.frame_duration = 0.1f, .duration_left = 0.1f,
 									.type = LOOPING };
-Animation anm_dinobaby = Animation{ .first = 0, .last = 6, .cur = 0,
-									.frame_duration = 0.1f, .duration_left = 0.1f,
-									.type = LOOPING };
+
+const float screenScaler = 1.f;		//TODO: Make all sprites read and apply it automatically
+Image img_bg = LoadImage("dino-game-bg.png");
+Image img_dinomom = LoadImage("dinomom-atlas_hq.png");
+Image img_dinobaby = LoadImage("babydino-atlas.png");
+Image img_car = LoadImage("car-atlas.png");
 
 int main()
 {
-	const float screenScaler = 1.f;		//TODO: Make all sprites read and apply it automatically
-	Image img_bg = LoadImage("dino-game-bg.png");
-	Image img_dinomom = LoadImage("dinomom-atlas_hq.png");
-	Image img_dinobaby = LoadImage("babydino-atlas.png");
-	Image img_car = LoadImage("car-atlas.png");
 
 	InitWindow((int)(screenSize.x * screenScaler), (int)(screenSize.y * screenScaler), "Dino Hunt!");
 	SetTargetFPS(60);
@@ -43,42 +63,19 @@ int main()
 	Texture txtr_dinobaby = LoadTextureFromImage(img_dinobaby);
 	Texture txtr_car = LoadTextureFromImage(img_car);
 
-	spr_dinomom = Sprite(txtr_dinomom, Vector2{ 40.f,90.f }, Vector2{ 48.f, 48.f }, 0.f, Vector2{ 2.f, 0.f });
+	//Dinomom sprite
+	spr_dinomom = Sprite(	txtr_dinomom, Rectangle{ .x=40.f, .y=90.f, .width=48.f, .height=48.f }, 0.f	);
 	spr_dinomom.SetAnimation("walk", &anm_dinomom);
+	AllSprites.push_back(&spr_dinomom);
 
-	Sprite spr_dinobaby = Sprite(txtr_dinobaby, Vector2{ 200.f,90.f }, Vector2{ 34.f, 34.f });
-	spr_dinobaby.SetAnimation("walk", &anm_dinobaby);
-
-	//Animation anm_dinomom = Animation{ 0, 6, 0, 0.1, 0.1 };
-
-	/// *** Pre-C++20 named initialization:
-	//Animation anm_dinomom = [&] {
-	//	Animation anm;
-	//	anm.first = 0; anm.last = 6; anm.cur = 0; anm.frame_duration = 0.16; 
-	//	anm.duration_left = 0.16;
-	//	return anm;
-	//	}();
-
-	///	Named-parameters struct initialization requires C++20 setup (14 is default):
-	//  1. Right-click Project -> Properties
-	//  2. Configuration Properties -> C / C++ Language
-	//	3. C++ Language Standard ->	ISO C++20 Standard(/ std:c++20)
-
-	//using Animation = struct {
-	//	Sprite* sprite;
-	//	string id;
-	//	Texture texture;
-	//	int column_count = 3;	//rows are calculated from the column (TODO: add separate param for sparse spritesheets)
-	//	int first; int last; int cur;
-	//	float frame_duration; float duration_left;
-	//	AnimationType type;
-	//};
+	//Dinobaby sprite
+	//Dynamic Memory allocation (use "delete" to destroy it later)
+	Sprite* spr_dinobaby = new Sprite(txtr_dinobaby, { .x = 200.f, .y = 90.f, .width = 34.f, .height = 34.f });
+	spr_dinobaby->SetAnimation("walk", &anm_dinobaby);
+	AllSprites.push_back(spr_dinobaby);
 
 	//--- Main Game Loop
 	while (!WindowShouldClose()) {
-
-		spr_dinomom.UpdateAnimation("walk");
-		spr_dinobaby.UpdateAnimation("walk");
 
 		BeginDrawing();
 			ClearBackground(WHITE);
@@ -86,25 +83,46 @@ int main()
 			bgOffset -= BG_SCROLL_SPEED;   //Scroll speed per screen update
 			if (bgOffset <= -txtr_bg.width)
 				bgOffset = 0;
-			DrawTexture(txtr_bg, bgOffset, 0, WHITE);
-			DrawTexture(txtr_bg, txtr_bg.width+bgOffset, 0, WHITE);
+			DrawTexture(txtr_bg, (int)bgOffset, 0, WHITE);
+			DrawTexture(txtr_bg, (int)(txtr_bg.width + bgOffset), 0, WHITE);
 
 			// Player movement
 			if (IsKeyDown(KEY_RIGHT))
-				spr_dinomom.pos.x += DINOMOM_SPEED;
+				spr_dinomom.rect.x += DINOMOM_SPEED;
 			if (IsKeyDown(KEY_LEFT))
-				spr_dinomom.pos.x -= DINOMOM_SPEED;
+				spr_dinomom.rect.x -= DINOMOM_SPEED;
 			if (IsKeyDown(KEY_UP))
-				spr_dinomom.pos.y -= DINOMOM_SPEED;
+				spr_dinomom.rect.y -= DINOMOM_SPEED;
 			if (IsKeyDown(KEY_DOWN))
-				spr_dinomom.pos.y += DINOMOM_SPEED;
-			spr_dinomom.pos.x = clamp(spr_dinomom.pos.x, dinomom_bounds.x, (dinomom_bounds.x + dinomom_bounds.width));
-			spr_dinomom.pos.y = clamp(spr_dinomom.pos.y, dinomom_bounds.y, (dinomom_bounds.y + dinomom_bounds.height));
+				spr_dinomom.rect.y += DINOMOM_SPEED;
+			spr_dinomom.rect.x = clamp(spr_dinomom.rect.x, dinomom_bounds.x, (dinomom_bounds.x + dinomom_bounds.width));
+			spr_dinomom.rect.y = clamp(spr_dinomom.rect.y, dinomom_bounds.y, (dinomom_bounds.y + dinomom_bounds.height));
 
-			spr_dinobaby.pos.x -= DINOBABY_SPEED;
+			//for (int i = 0; i < NUM_MAX_BABYDINOS; i++) {
+			//	spr_dinobabies[i]
+			//}
 
-			spr_dinobaby.Draw();
-			spr_dinomom.Draw();
+			if (spr_dinobaby->active) {
+				//Move Dinobabies
+				spr_dinobaby->rect.x -= DINOBABY_SPEED;
+				//Check Collisions
+				if (CheckCollisionRecs(spr_dinomom.rect, spr_dinobaby->rect))
+				{
+					Score++;
+					spr_dinobaby->active = false;
+					//delete spr_dinobaby;	// free up memory that was dynamically allocated
+					//spr_dinobaby = nullptr; //creates a dangling pointer in AllSprites
+				}
+			}
+
+			DrawTextEx(GetFontDefault(), TextFormat("Score: %d", Score), Vector2{ (screenSize.x - 80), 10 }, 18, 2, RED);
+
+			//spr_dinobaby.Draw();
+			//spr_dinomom.Draw();
+			for (Sprite* sprite : AllSprites) {
+				if (sprite->active)
+					sprite->Draw();
+			}
 
 		EndDrawing();
 	}

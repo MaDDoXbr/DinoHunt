@@ -17,13 +17,13 @@ using AnimationType = enum { LOOPING = 1, ONESHOT = 2, };
 //******************************
 
 struct Animation {
-	//Sprite* sprite;
-	string id;
-	Texture texture;
+	//Texture texture;
+	Rectangle sourceRect = {};	// Area that'll be sliced from the spritesheet
 	int column_count = 3;	//rows are calculated from the column (TODO: add separate param for sparse spritesheets)
 	int first; int last; int cur;
 	float frame_duration; float duration_left;
 	AnimationType type;
+	Vector2 cropOffset{ 0.f, 0.f };
 };
 
 //**********************
@@ -31,40 +31,37 @@ struct Animation {
 class Sprite {
 public:
 	Texture texture{};
-	Vector2 size{ 1.f, 1.f };		// in pixels
 	Vector2 screenScale{ 1.f, 1.f };// on-screen
-	Vector2 startPos{ 0.f, 0.f };
-	Vector2 pos{ 80.f, 90.f };	//0f, 0f
-	Vector2 cropOffset{ 0.f, 0.f };
+	Rectangle rect;
 	float rot{ 0.f };
 	map<string, Animation*> animations;	// animname | animation
 	Animation* curAnimation;
+	bool active = true;
 
-	Sprite(Texture _texture,
-		Vector2 _pos = { 80.f, 90.f },
-		Vector2 _size = { 1.f,1.f },
-		float _rot = { 0.f },
-		Vector2 _cropOffset = { 0.f, 0.f },
-		Vector2 _screenScale = { 1.f, 1.f },
-		Vector2 _startPos = { 0.f, 0.f },
-		map<string, Animation*> _animations = {},
-		Animation* _curAnimation = nullptr) 
+	Sprite(Texture texture,
+		Rectangle rect = {0.f, 0.f, 0.f, 0.f}, //{ .x = 80.f, .y = 90.f, .width = 1.f, .height = 1.f },
+		float rot = { 0.f },
+		bool active = true,
+		Vector2 screenScale = { 1.f, 1.f },
+		map<string, Animation*> animations = {},
+		Animation* curAnimation = nullptr) 
 		{
-			texture = _texture;	pos = _pos;	rot = _rot; size = _size;
-			startPos = _startPos; screenScale = _screenScale; cropOffset = _cropOffset;
-			animations = _animations; curAnimation = _curAnimation;
+			this->texture = texture; this->rect = rect; this->rot = rot;
+			this->screenScale = screenScale;
+			this->animations = animations; this->curAnimation = curAnimation;
 		}
-	Sprite() {};
-
+	// Default constructor with member initializers to prevent "uninitialized" error messages
+	Sprite() : rect{0.f, 0.f, 0.f, 0.f}, curAnimation(nullptr) {}
 	//~Sprite() { cout << "Sprite destroyed!"; } //Destructor
 
 	void Draw();
 	void SetAnimation(string, Animation*);	//Might be "add" or "update"
 	Animation* GetAnimationFromId(string);
 	void UpdateAnimations();
+	void UpdateAnimation();
 	void UpdateAnimation(string);			//Overload with Id (string)
 	void UpdateAnimation(Animation*);		//Overload with the actual Animation pointer
-	Rectangle getAnimationRect(Animation*);
+	void updateAnimFrame(Animation*);
 
 private:
 
