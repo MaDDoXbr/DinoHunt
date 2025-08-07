@@ -37,6 +37,9 @@ void Sprite::Draw() {
 	//				Rectangle{ 80,96,48,48 }, { 0.0f, 0.0f }, 0.0f, WHITE);
 }
 
+/// <summary>Add or update one animation</summary>
+/// <param name="id"></param>
+/// <param name="anim_p">Animation Pointer</param>
 void Sprite::SetAnimation(string id, Animation* anim_p) {
 	//this->animations.insert(pair(id, anim));	
 	this->animations.emplace(id, anim_p);	//Slightly more efficient, no temporary "pair" construction in memory
@@ -63,11 +66,7 @@ void Sprite::UpdateAnimation(Animation* self) {
 		self->duration_left = self->frame_duration;
 		self->cur++;
 		// if it's the last frame
-		if (self->cur >= self->last) //was _>_, leading to a last-frame-stuck bug
+		if (self->cur >= self->last)
 			self->cur = (self->type != ONESHOT) ? self->first : self->last;	// ternary/conditional operator
-		//if (self->type == LOOPING)
-		//	self->cur = self->first;
-		//else
-		//	self->cur = self->last;		//sticks to the last frame
 	}
 }

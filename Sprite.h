@@ -48,13 +48,12 @@ public:
 		Vector2 _screenScale = { 1.f, 1.f },
 		Vector2 _startPos = { 0.f, 0.f },
 		map<string, Animation*> _animations = {},
-		Animation* _curAnimation = nullptr) {
-
-		texture = _texture;	pos = _pos;	rot = _rot; size = _size;
-		startPos = _startPos; screenScale = _screenScale; cropOffset = _cropOffset;
-		animations = _animations; curAnimation = _curAnimation;
-	}
-
+		Animation* _curAnimation = nullptr) 
+		{
+			texture = _texture;	pos = _pos;	rot = _rot; size = _size;
+			startPos = _startPos; screenScale = _screenScale; cropOffset = _cropOffset;
+			animations = _animations; curAnimation = _curAnimation;
+		}
 	Sprite() {};
 
 	//~Sprite() { cout << "Sprite destroyed!"; } //Destructor
